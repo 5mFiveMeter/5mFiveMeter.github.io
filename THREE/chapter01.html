@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+        html,body{margin: 0;padding: 0;overflow: hidden;}
+    </style>
+    <script src="three.js"></script>
+    <script src="stats.js"></script>
+    <script src="dat.gui.js"></script>
+</head>
+<body>
+
+    <div id="Stats-output"></div>
+    <div id="WebGL-output"></div>
+
+    <script>
+
+
+        function init(){
+
+            var stats = initStats();
+
+            //场景/相机/渲染器/坐标轴
+            var scene = new THREE.Scene();
+
+            var camera = new THREE.PerspectiveCamera(45,window.innerWidth/window.innerHeight,0.1,1000);
+            camera.position.set(-30,40,30);
+            camera.lookAt(scene.position);
+
+            var renderer = new THREE.WebGLRenderer();
+            renderer.setClearColor(new THREE.Color(0xEEEEEE));
+            renderer.setSize(window.innerWidth,window.innerHeight);
+            renderer.shadowMap.enabled = true;
+
+            var axes = new THREE.AxesHelper(20);
+            scene.add(axes);
+            //底部
+            var planeGeometry = new THREE.PlaneGeometry(60,20);
+            var planeMeterial = new THREE.MeshLambertMaterial({color:0xffffff});
+            var plane = new THREE.Mesh(planeGeometry,planeMeterial);
+            plane.rotation.x = -0.5*Math.PI;
+            plane.position.set(15,0,0);
+            plane.receiveShadow = true;
+            scene.add(plane);
+            //方形
+            var cubeGeometry = new THREE.BoxGeometry(4,4,4);
+            var cubeMaterial = new THREE.MeshLambertMaterial({color:0xff0000});
+            var cube = new THREE.Mesh(cubeGeometry,cubeMaterial);
+            cube.position.set(-4,3,0);
+            cube.castShadow = true;
+            scene.add(cube);
+            //圆形
+            var sphereGeometry = new THREE.SphereGeometry(4,20,20);
+            var sphereMaterial = new THREE.MeshLambertMaterial({color:0x7777ff});
+            var sphere = new THREE.Mesh(sphereGeometry,sphereMaterial);
+            sphere.position.set(20,4,2);
+            sphere.castShadow = true;
+            scene.add(sphere);
+            //聚光灯
+            var spotLight = new THREE.SpotLight(0xffffff);
+            spotLight.position.set(-40,60,-10);
+            spotLight.castShadow = true;
+            scene.add(spotLight);
+            //将渲染器放入dom
+            document.getElementById("WebGL-output").appendChild(renderer.domElement);
+            renderer.render(scene,camera);
+
+            var step = 0;
+
+            var controls = {
+                rotationSpeed:0.02,
+                bouncingSpeed:0.03
+            };
+            var gui = new dat.GUI();
+            gui.add(controls,"rotationSpeed",0,0.5);
+            gui.add(controls,"bouncingSpeed",0,0.5);
+
+            renderScene();
+            function renderScene(){
+                stats.update();
+                cube.rotation.x += controls.rotationSpeed;
+                cube.rotation.y += controls.rotationSpeed;
+                cube.rotation.z += controls.rotationSpeed;
+
+                step += controls.bouncingSpeed;
+                sphere.position.x = 20 + (10 * Math.cos(step));
+                sphere.position.y = 2 + (10 * Math.abs( Math.sin(step) ));
+                requestAnimationFrame(renderScene);
+                renderer.render(scene,camera);
+            }
+            function initStats(){
+                var stats = new Stats();
+                stats.setMode(0);
+                stats.domElement.style.position = "absolute";
+                stats.domElement.style.left = "0";
+                stats.domElement.style.top = "0";
+                document.getElementById("Stats-output").appendChild(stats.domElement);
+                return stats;
+            }
+            window.addEventListener("resize",function(){
+                camera.aspect = window.innerWidth/window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth,window.innerHeight);
+            })
+        }
+        window.onload = init;
+    </script>
+
+</body>
+</html>
