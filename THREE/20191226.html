@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <script src="three.js"></script>
+</head>
+<body>
+    <p>
+        <a href="https://threejs.org/docs/index.html#manual/zh/introduction/Creating-a-scene">Three.js文档</a>
+    </p>
+    <script>
+        //场景
+        var scene = new THREE.Scene();
+        //相机 此处选择透视相机（近大远小）
+        /*
+        *param 视野角度 我理解为上下眼皮中点和视网膜中心连线的夹角
+        *param 长宽比 哦
+        *param 距离近截面的距离
+        *param 距离远截面的距离
+        * 近截面和远截面之间的距离则是被渲染的范围 这里也就是距离相机 0.1-1000 范围
+        */
+        var camera = new THREE.PerspectiveCamera(60,window.innerWidth/window.innerHeight,0.1,1000);
+        //相机位置  也可以直接属性赋值(camera.position.x=30 ...)
+        camera.position.set(30,30,30);
+        //设置相机的焦点 此时看向圆心
+        camera.lookAt(new THREE.Vector3(0,0,0));
+        //渲染器采用WebGLRenderer
+        var renderer = new THREE.WebGLRenderer();
+        //渲染器尺寸
+        renderer.setSize(window.innerWidth,window.innerHeight);
+        //渲染器加入到body中
+        document.body.appendChild(renderer.domElement);
+        //设置渲染器颜色
+        renderer.setClearColor(new THREE.Color(0xe2e2e2));
+        //开启阴影
+        renderer.shadowMap.enabled = true;
+        //承载台
+        //一个长15宽20的面
+        var paneGeometry = new THREE.PlaneGeometry(15,20);
+        //表面不光泽的漫反射材质
+        var planeMaterial = new THREE.MeshLambertMaterial({color:0xcccccc});
+        //产生物体
+        var plane = new THREE.Mesh(paneGeometry,planeMaterial);
+        //设置位置
+        plane.position.set(0,0,0);
+        plane.rotation.x = -0.5*Math.PI;
+        //能接受阴影投射
+        plane.receiveShadow=true;
+        //添加到场景
+        scene.add(plane);
+        //坐标轴
+        var axes = new THREE.AxesHelper(20);
+        scene.add(axes);
+        //光源
+        var spotLight = new THREE.SpotLight(0xffffff);
+        spotLight.position.set(-40,60,-10);
+        spotLight.castShadow = true;
+        scene.add(spotLight);
+        //盒子
+        var geometry = new THREE.BoxGeometry(4,4,4);
+        var material = new THREE.MeshLambertMaterial({color:0x00ff00});
+        var cube = new THREE.Mesh(geometry,material);
+        cube.castShadow = true;
+        cube.position.set(0,4,0);
+        scene.add(cube);
+        render();
+        
+        function render(){
+            requestAnimationFrame(render);
+            cube.rotation.x += 0.1;
+            cube.rotation.y += 0.1;
+            renderer.render(scene,camera);
+        }
+
+    </script>
+
+</body>
+</html>
