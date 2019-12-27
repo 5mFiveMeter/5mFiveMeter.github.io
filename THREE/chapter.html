@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+        html,body{margin: 0;padding: 0;overflow: hidden;}
+    </style>
+    <script src="three.js"></script>
+    <script src="stats.js"></script>
+    <script src="dat.gui.js"></script>
+</head>
+<body>
+
+<div id="Stats-output"></div>
+<div id="WebGL-output"></div>
+
+<script>
+
+    function init(){
+
+        var stats = initStats();
+
+        //场景/相机/渲染器
+        var scene = new THREE.Scene();
+
+        var camera = new THREE.PerspectiveCamera(45,window.innerWidth/window.innerHeight,0.1,1000);
+        camera.position.set(-100,100,100);
+        camera.lookAt(scene.position);
+
+        var renderer = new THREE.WebGLRenderer();
+        renderer.setClearColor(new THREE.Color(0xEEEEEE));
+        renderer.setSize(window.innerWidth,window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        //迷雾
+        scene.fog = new THREE.Fog(0xe2e2e2,0,300);
+        //材料色覆盖
+        //scene.overrideMaterial = new THREE.MeshLambertMaterial({color:0x000000});
+        //底部
+        var planeGeometry = new THREE.PlaneGeometry(200,120);
+        var planeMeterial = new THREE.MeshLambertMaterial({color:0xffffff});
+        var plane = new THREE.Mesh(planeGeometry,planeMeterial);
+        plane.rotation.x = -0.5*Math.PI;
+        plane.position.set(15,0,0);
+        plane.receiveShadow = true;
+        scene.add(plane);
+        //环境灯
+        var ambientLight = new THREE.AmbientLight(0x090909);
+        scene.add(ambientLight);
+        //聚光灯
+        var spotLight = new THREE.SpotLight(0xffffff);
+        spotLight.position.set(-40,60,-10);
+        spotLight.castShadow = true;
+        scene.add(spotLight);
+        //将渲染器放入dom
+        document.getElementById("WebGL-output").appendChild(renderer.domElement);
+        renderer.render(scene,camera);
+        //添加物体
+        addGeometries();
+        function addGeometries(){
+            var geoms = [];
+            //圆柱体 顶部半径1 底部半径4 高度4
+            geoms.push(new THREE.CylinderGeometry(2,10,10));
+            //正方体
+            geoms.push(new THREE.BoxGeometry(10,10,10));
+            //球体
+            geoms.push(new THREE.SphereGeometry(10));
+            //十二面几何体 半径4
+            geoms.push(new THREE.IcosahedronGeometry(8));
+            //车削几何体
+            var pts = [],detail = 0.1,radius = 10;
+            for(var angle=0.0;angle<Math.PI;angle += detail){
+                pts.push(new THREE.Vector3(Math.cos(angle)*radius,0,Math.sin(angle)*radius));
+            }
+            geoms.push(new THREE.LatheGeometry(pts,12));
+            //八面几何体
+            geoms.push(new THREE.OctahedronGeometry(10));
+
+            //四面几何
+            geoms.push(new THREE.TetrahedronGeometry(10));
+            //圆环几何体
+            geoms.push(new THREE.TorusGeometry(5,4,10,10));
+            //圆环扭结几何
+            geoms.push(new THREE.TorusKnotGeometry(5,1,50,20));
+            //几何体定位
+            var j = 0;
+            for(var i=0;i<geoms.length;i++){
+                var material = new THREE.MeshLambertMaterial({color:Math.random()*0xffffff,shading:THREE.FlatShading});
+                var mesh = new THREE.Mesh(geoms[i],material);
+                mesh.castShadow = true;
+                mesh.position.set(-60+(i%4)*50,10,-20+j*30);
+                (i+1)%4==0?j++:"";
+                scene.add(mesh);
+            }
+        }
+
+        //--------------------------------
+        var controls = {
+            rotationSpeed:0.02,
+            objectCount:scene.children.length,
+            addCube:function(){
+                var cubeSize = Math.ceil( Math.random()*10 );
+                var cubeGeometry = new THREE.BoxGeometry(cubeSize,cubeSize,cubeSize);
+                var cubeMaterial = new THREE.MeshLambertMaterial({color:Math.random()*0xffffff});
+                var cube = new THREE.Mesh(cubeGeometry,cubeMaterial);
+                cube.castShadow = true;
+                cube.name = "cube-"+scene.children.length;
+                cube.position.set(
+                    -100 + Math.round( Math.random() * planeGeometry.parameters.width ),
+                    Math.round( Math.random() * 10 ),
+                    -60 + Math.round( Math.random() * planeGeometry.parameters.height )
+                );
+                scene.add(cube);
+                this.objectCount = scene.children.length;
+            },
+            removeCube:function(){
+                var allChildren = scene.children;
+                var lastCube = allChildren[allChildren.length - 1];
+                if(lastCube instanceof THREE.Mesh){
+                    scene.remove(lastCube);
+                    this.objectCount = scene.children.length;
+                }
+            },
+            outputScene:function(){
+                console.log(scene);
+            }
+        };
+
+        var gui = new dat.GUI();
+        gui.add(controls,"rotationSpeed",0,0.5);
+        gui.add(controls,"objectCount").listen();
+        gui.add(controls,"addCube");
+        gui.add(controls,"removeCube");
+        gui.add(controls,"outputScene");
+
+
+        renderScene();
+        function renderScene(){
+            stats.update();
+
+            scene.traverse(function(target){
+                if(target instanceof THREE.Mesh && target != plane){
+                    target.rotation.x += controls.rotationSpeed;
+                    target.rotation.y += controls.rotationSpeed;
+                    target.rotation.z += controls.rotationSpeed;
+                }
+            });
+            requestAnimationFrame(renderScene);
+            renderer.render(scene,camera);
+        }
+        function initStats(){
+            var stats = new Stats();
+            stats.setMode(0);
+            stats.domElement.style.position = "absolute";
+            stats.domElement.style.left = "0";
+            stats.domElement.style.top = "0";
+            document.getElementById("Stats-output").appendChild(stats.domElement);
+            return stats;
+        }
+        window.addEventListener("resize",function(){
+            camera.aspect = window.innerWidth/window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth,window.innerHeight);
+        })
+    }
+    window.onload = init;
+</script>
+
+</body>
+</html>
+
